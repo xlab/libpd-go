@@ -7,24 +7,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func printNoteOn(ch, pitch, vel int32) {
-	log.Printf("[note on] ch=%d pitch=%d vel=%d", ch, pitch, vel)
-}
-
 func TestCore(t *testing.T) {
 	assert := assert.New(t)
-	// These are OK, but noisy
-	//
-	// SetPrintHook(func(msg string) {
-	// 	log.Println("[PureData]", msg)
-	// })
-	// SetNoteOnHook(printNoteOn)
+
 	Init()
 	const sRate = 44100
 	InitAudio(1, 2, sRate)
 
 	inbuf := make([]float32, 64)   // one input channel, two output channels
 	outbuf := make([]float32, 128) // block size 64, one tick per buffer
+
+	SetNoteOnHook(func(ch, pitch, vel int32) {
+		log.Printf("[note on] ch=%d pitch=%d vel=%d", ch, pitch, vel)
+	})
 
 	// compute audio    [; pd dsp 1(
 	StartMessage(1)

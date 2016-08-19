@@ -53,9 +53,9 @@ TRANSLATOR:
     type: 
       - {action: accept, from: "^t_libpd_"}
       - {action: replace, from: "^t_libpd_", to: _}
+      - {action: accept, from: "^t_atomtype"}
       - {action: replace, from: "^t_", to: _}
       - {action: replace, from: "type$", to: Type}
-      - {action: replace, from: "_t$"}
     private:
       - {transform: unexport}
     post-global: 
