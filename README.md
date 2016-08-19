@@ -1,5 +1,7 @@
-libpd-go ![libpd](http://barangulesen.com/puredata/1.png)
+libpd-go
 ========
+
+![libpd](http://barangulesen.com/puredata/1.png)
 
 The package provides Go bindings for for libpd — Pure Data embeddable audio synthesis library.<br />
 All the binding code has automatically been generated with rules defined in [core.yml](/core.yml).
