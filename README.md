@@ -19,6 +19,20 @@ There is a simple Pure Data player implemented in Go that can read patches, incl
 
 ```bash
 $ brew install portaudio
+$ go get github.com/xlab/libpd-go/cmd/pdplay
+
+$ pdplay -h
+
+Usage: pdplay [OPTIONS] PATCHDIR
+
+A minimal PureData player implemented in Go.
+
+Arguments:
+  PATCHDIR=""   Path to the patch dir.
+
+Options:
+  --name="main.pd"   Name of the main file.
+
 $ pdplay $GOPATH/src/github.com/xlab/libpd-go/assets/patch01
 
 # an atmospheric meditation synthesis sound goes...
