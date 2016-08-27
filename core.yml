@@ -15,11 +15,18 @@ TRANSLATOR:
   ConstRules: 
     defines: expand
     enum: eval
+  PtrTips:
+    function:
+      - {target: ^pd_setinstance, tips: [ref]}
+      - {target: ^pdinstance_free, tips: [ref]}
   Rules: 
     global: 
       - {transform: lower}
       - {action: accept, from: "^libpd_"}
       - {action: replace, from: "^libpd_", to: _}
+      - {action: accept, from: "^_pdinstance"}
+      - {action: accept, from: "^pdinstance"}
+      - {action: accept, from: "^pd_setinstance"}
       # proper camel case namings
       - {action: replace, from: "file$", to: File}
       - {action: replace, from: "size$", to: Size}
@@ -46,6 +53,8 @@ TRANSLATOR:
       - {action: replace, from: "midibyte$", to: MIDIByte}
       - {action: replace, from: "sysex$", to: SysEx}
       - {action: replace, from: "sysrealtime$", to: SysRealtime}
+      - {action: replace, from: "pdinstance", to: PdInstance}
+      - {action: replace, from: "setinstance$", to: SetInstance}
     const:
       - {action: accept, from: A_}
       - {action: ignore, from: A_DEFSYMBOL}
