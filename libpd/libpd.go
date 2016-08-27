@@ -13,12 +13,15 @@ var (
 
 	pdInit bool
 	pdMap  = make(map[int]*core.PdInstance)
-	pdMux  = new(sync.RWMutex)
+	pdMux  = new(sync.Mutex)
 )
 
 type Instance struct {
-	handle   int
-	initDone bool
+	handle     int
+	initDone   bool
+	msgMux     *sync.Mutex
+	patches    map[int]Patch
+	patchesMux *sync.RWMutex
 
 	printHook   core.PrintHook
 	bangHook    core.BangHook
@@ -74,11 +77,17 @@ func NewInstance() *Instance {
 	pdMux.Unlock()
 
 	return &Instance{
-		handle: handle,
+		handle:     handle,
+		msgMux:     new(sync.Mutex),
+		patches:    make(map[int]Patch, 8),
+		patchesMux: new(sync.RWMutex),
 	}
 }
 
 func switchInstance(handle int) error {
+	if pdCurrent == handle {
+		return nil // no-op
+	}
 	// get a real instance reference
 	ref, ok := pdMap[handle]
 	if !ok {
@@ -94,9 +103,8 @@ func switchInstance(handle int) error {
 func (i *Instance) Init(inCh, outCh int, sampleRate int) error {
 	pdMux.Lock()
 	defer pdMux.Unlock()
-	if err := switchInstance(i.handle); err != nil {
-		return err
-	}
+	err := switchInstance(i.handle)
+	orPanic(err)
 
 	if i.printHook != nil {
 		core.SetPrintHook(i.printHook)
@@ -142,11 +150,169 @@ func (i *Instance) Init(inCh, outCh int, sampleRate int) error {
 		pdInit = true
 	}
 	if ret := core.InitAudio(int32(inCh), int32(outCh), int32(sampleRate)); ret != 0 {
-		err := fmt.Errorf("pd InitAudio failed with ret: %d", ret)
+		err := fmt.Errorf("audio init failed: %d", ret)
 		return err
 	}
 	i.initDone = true
 	return nil
+}
+
+// SendMessage sends a message with no args, this opeation
+// blocks until instance is busy processing another message.
+func (i *Instance) SendMessage(recv, msg string) bool {
+	if !i.initDone {
+		return false
+	}
+	i.msgMux.Lock()
+	defer i.msgMux.Unlock()
+
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.Message(recv+"\x00", msg+"\x00", 0, nil)
+	return ret == 0
+}
+
+// NewMessageQueue creates a message stream, returns a channel for message's arguments.
+// The channel will be automatically closed when number of arguments sent hits the maxArgs limit,
+// however if there is less args than that, you must close the channel explicitly.
+//
+// For example: maxArgs=1, you send 1 value of type float32, the channel is closed and the message is sent.
+// Another example: maxArgs=2, you send 1 value of type string, you must close the channel, otherwise the message
+// session will stuck awaiting and will prevent you from creating another one.
+func (i *Instance) NewMessageQueue(recv, msg string, maxArgs int) (chan<- Atom, bool) {
+	if !i.initDone {
+		return nil, false
+	}
+
+	pdMux.Lock()
+	if err := switchInstance(i.handle); err != nil {
+		pdMux.Unlock()
+		orPanic(err)
+	}
+	ret := core.StartMessage(int32(maxArgs))
+	pdMux.Unlock()
+	if ret != 0 {
+		return nil, false
+	}
+
+	ch := make(chan Atom, maxArgs)
+	go func() {
+		i.msgMux.Lock()
+		defer i.msgMux.Unlock()
+		var processed int
+		for atom := range ch {
+			processQueuedAtom(i.handle, atom)
+			processed++
+			if processed >= maxArgs {
+				close(ch)
+			}
+		}
+		pdMux.Lock()
+		defer pdMux.Unlock()
+		err := switchInstance(i.handle)
+		orPanic(err)
+		core.FinishMessage(recv+"\x00", msg+"\x00")
+	}()
+	return ch, true
+}
+
+func processQueuedAtom(handle int, atom Atom) {
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(handle)
+	orPanic(err)
+
+	switch v := atom.(type) {
+	case float32:
+		core.AddFloat(v)
+	case string:
+		core.AddSymbol(v + "\x00")
+	case int:
+		core.AddFloat(float32(v))
+	case int8:
+		core.AddFloat(float32(v))
+	case int16:
+		core.AddFloat(float32(v))
+	case int32:
+		core.AddFloat(float32(v))
+	case int64:
+		core.AddFloat(float32(v))
+	case uint:
+		core.AddFloat(float32(v))
+	case uint8:
+		core.AddFloat(float32(v))
+	case uint16:
+		core.AddFloat(float32(v))
+	case uint32:
+		core.AddFloat(float32(v))
+	case uint64:
+		core.AddFloat(float32(v))
+	case float64:
+		core.AddFloat(float32(v))
+	default:
+		// skip unknown arg types
+	}
+}
+
+func orPanic(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (i *Instance) ProcessRaw(inBuffer, outBuffer []float32) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.ProcessRaw(inBuffer, outBuffer)
+	return ret == 0
+}
+
+func (i *Instance) ProcessInt16(ticks int, inBuffer, outBuffer []int16) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.ProcessShort(int32(ticks), inBuffer, outBuffer)
+	return ret == 0
+}
+
+func (i *Instance) ProcessFloat32(ticks int, inBuffer, outBuffer []float32) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.ProcessFloat(int32(ticks), inBuffer, outBuffer)
+	return ret == 0
+}
+
+func (i *Instance) ProcessFloat64(ticks int, inBuffer, outBuffer []float64) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.ProcessDouble(int32(ticks), inBuffer, outBuffer)
+	return ret == 0
 }
 
 func (i *Instance) SetPrintHook(fn func(recv string)) {
