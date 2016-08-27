@@ -29,6 +29,11 @@ func (w *Word) Pointer() unsafe.Pointer {
 	return unsafe.Pointer((*[1]uintptr)(unsafe.Pointer(w))[0])
 }
 
+func (w *Word) Symbol() string {
+	symbol := (*C.t_symbol)(unsafe.Pointer(w))
+	return C.GoString(symbol.s_name)
+}
+
 // !! The code below has been automatically generated !!
 
 // PassValue creates a new C object if no refernce yet and returns the dereferenced value.
