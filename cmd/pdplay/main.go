@@ -109,7 +109,7 @@ func NewPlayer(patchName, patchDir string, channels, sampleRate int, debug bool)
 	}
 	if debug {
 		path := filepath.Join(patch.Dir(), patch.Name())
-		log.Printf("playing ($0=%d) %s\n", patch.DollarZero(), path)
+		log.Printf("playing %s ($0=%d)\n", path, patch.DollarZero())
 	}
 	player := &Player{
 		dsp: instance,
