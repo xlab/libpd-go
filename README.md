@@ -1,21 +1,22 @@
-libpd-go <img alt="puredata-logo" src="http://barangulesen.com/puredata/1.png" width="50px"/>
+libpd-go <img alt="puredata-logo" src="http://barangulesen.com/puredata/1.png" width="50px"/> [![GoDoc](https://godoc.org/github.com/xlab/libpd-go/libpd?status.svg)](https://godoc.org/github.com/xlab/libpd-go/libpd)
 ========
 
-The package provides Go bindings for for libpd — Pure Data embeddable audio synthesis library.<br />
-All the binding code has automatically been generated with rules defined in [core.yml](/core.yml).
+This project provides Go bindings for Pure Data wrapper z_libpd.h — a Pure Data embeddable audio synthesis library.<br />
+All the binding code has automatically been generated with rules defined in [core.yml](/core.yml). There is also a high-level 
+Go package **libpd** implemented over the core, it introduces threadsafe access to PD, some idiomatic helpers and allows to run multiple instances of PD.
 
-Before using you must install [libpd](https://github.com/libpd/libpd) library. Don't worry, it installs fine and
-that's the fastest way to start unsing PD as an embedded DSP.
+Before start you must install [libpd](https://github.com/libpd/libpd) library. Don't worry, it installs fine and
+that's the fastest way to begin using PD as an embedded DSP.
 
 ### Usage
 
 ```
-$ go get github.com/xlab/libpd-go
+$ go get github.com/xlab/libpd-go/libpd
 ```
 
 ### Demo
 
-There is a simple Pure Data player implemented in Go that can read patches, including extras, and play them via [portaudio-go](https://github.com/xlab/portaudio-go). So you will need to get portaudio installed first.
+There is a minimal Pure Data player implemented in Go that can read patches, including extras, and play them via [portaudio-go](https://github.com/xlab/portaudio-go). It's about 100 lines of code. You will need to get [PortAudio](http://www.portaudio.com) installed first.
 
 ```bash
 $ brew install portaudio
