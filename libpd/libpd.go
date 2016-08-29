@@ -37,6 +37,9 @@ type Instance struct {
 	aftertouchHook     core.AftertouchHook
 	polyAftertouchHook core.PolyAftertouchHook
 	midiByteHook       core.MIDIByteHook
+
+	// TODO: message handling
+	// https://github.com/libpd/libpd/wiki/libpd
 }
 
 func (i *Instance) Destroy() {
@@ -332,14 +335,14 @@ func (i *Instance) SetSymbolHook(fn func(recv string, sym string)) {
 }
 
 func (i *Instance) SetListHook(fn func(recv string, argv ...Atom)) {
-	i.listHook = func(recv string, argc int32, argv []core.Atom) {
+	i.listHook = func(recv string, argc int32, argv *core.Atom) {
 		args := convertAtomList(argv)
 		fn(recv, args...)
 	}
 }
 
 func (i *Instance) SetMessageHook(fn func(recv string, msg string, argv ...Atom)) {
-	i.messageHook = func(recv string, msg string, argc int32, argv []core.Atom) {
+	i.messageHook = func(recv string, msg string, argc int32, argv *core.Atom) {
 		args := convertAtomList(argv)
 		fn(recv, msg, args...)
 	}

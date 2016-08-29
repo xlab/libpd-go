@@ -4,27 +4,20 @@ import "github.com/xlab/libpd-go/core"
 
 type Atom interface{}
 
-var (
-	UnknownAtom Atom = struct{}{}
-	NullAtom    Atom = struct{}{}
-)
+var UnknownAtom Atom = struct{}{}
 
-func convertAtomList(atoms []core.Atom) []Atom {
-	list := make([]Atom, len(atoms))
-	for i := range atoms {
-		atoms[i].Deref()
-		switch atoms[i].AType {
-		case core.AtomNull:
-			list[i] = NullAtom
-		case core.AtomFloat:
-			list[i] = atoms[i].AW.Float32()
-		case core.AtomSymbol:
-			list[i] = atoms[i].AW.Symbol()
-		case core.AtomPointer:
-			list[i] = atoms[i].AW.Pointer()
+func convertAtomList(atomList *core.Atom) []Atom {
+	list := make([]Atom, 0, 10)
+	for atomList != nil {
+		switch {
+		case atomList.IsFloat():
+			list = append(list, atomList.Float())
+		case atomList.IsSymbol():
+			list = append(list, atomList.Symbol())
 		default:
-			list[i] = UnknownAtom
+			list = append(list, UnknownAtom)
 		}
+		atomList = atomList.Next()
 	}
 	return list
 }

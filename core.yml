@@ -19,6 +19,10 @@ TRANSLATOR:
     function:
       - {target: ^pd_setinstance, tips: [ref]}
       - {target: ^pdinstance_free, tips: [ref]}
+      - {target: _listhook$, tips: [0,0,ref]}
+      - {target: _messagehook$, tips: [0,0,0,ref]}
+      - {target: libpd_list$, tips: [0,0,ref]}
+      - {target: libpd_message$, tips: [0,0,0,ref]}
   Rules: 
     global: 
       - {transform: lower}
@@ -59,6 +63,14 @@ TRANSLATOR:
       - {action: accept, from: A_}
       - {action: ignore, from: A_DEFSYMBOL}
       - {action: replace, from: ^a_, to: Atom_}
+    function:
+      - {action: ignore, from: is_float$} # these are so simple
+      - {action: ignore, from: is_symbol$} # better to call manually
+      - {action: ignore, from: get_float$} # to reduce overhead, if any
+      - {action: ignore, from: get_symbol$} # see atom.go
+      - {action: ignore, from: next_atom$} 
+      - {action: ignore, from: set_float$} 
+      - {action: ignore, from: set_symbol$} 
     type: 
       - {action: accept, from: "^t_libpd_"}
       - {action: replace, from: "^t_libpd_", to: _}
