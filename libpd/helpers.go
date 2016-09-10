@@ -6,9 +6,9 @@ type Atom interface{}
 
 var UnknownAtom Atom = struct{}{}
 
-func convertAtomList(atomList *core.Atom) []Atom {
-	list := make([]Atom, 0, 10)
-	for atomList != nil {
+func convertAtomList(atomList *core.Atom, length int) []Atom {
+	list := make([]Atom, 0, length)
+	for i := 0; i < length; i++ {
 		switch {
 		case atomList.IsFloat():
 			list = append(list, atomList.Float())

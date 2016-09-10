@@ -2,7 +2,9 @@ package libpd
 
 import (
 	"fmt"
+	"log"
 	"sync"
+	"unsafe"
 
 	"github.com/xlab/libpd-go/core"
 )
@@ -14,6 +16,9 @@ var (
 	pdInit bool
 	pdMap  = make(map[int]*core.PdInstance)
 	pdMux  = new(sync.Mutex)
+
+	pdBindMap    = make(map[string]unsafe.Pointer)
+	pdBindMapMux = new(sync.RWMutex)
 )
 
 type Instance struct {
@@ -37,9 +42,6 @@ type Instance struct {
 	aftertouchHook     core.AftertouchHook
 	polyAftertouchHook core.PolyAftertouchHook
 	midiByteHook       core.MIDIByteHook
-
-	// TODO: message handling
-	// https://github.com/libpd/libpd/wiki/libpd
 }
 
 func (i *Instance) Destroy() {
@@ -189,7 +191,9 @@ func (i *Instance) NewMessageQueue(recv, msg string, maxArgs int) (chan<- Atom, 
 	if !i.initDone {
 		return nil, false
 	}
-
+	if maxArgs == 0 {
+		return nil, i.SendMessage(recv, msg)
+	}
 	pdMux.Lock()
 	if err := switchInstance(i.handle); err != nil {
 		pdMux.Unlock()
@@ -336,14 +340,14 @@ func (i *Instance) SetSymbolHook(fn func(recv string, sym string)) {
 
 func (i *Instance) SetListHook(fn func(recv string, argv ...Atom)) {
 	i.listHook = func(recv string, argc int32, argv *core.Atom) {
-		args := convertAtomList(argv)
+		args := convertAtomList(argv, int(argc))
 		fn(recv, args...)
 	}
 }
 
 func (i *Instance) SetMessageHook(fn func(recv string, msg string, argv ...Atom)) {
 	i.messageHook = func(recv string, msg string, argc int32, argv *core.Atom) {
-		args := convertAtomList(argv)
+		args := convertAtomList(argv, int(argc))
 		fn(recv, msg, args...)
 	}
 }
@@ -388,4 +392,67 @@ func (i *Instance) SetMIDIByteHook(fn func(port int, v byte)) {
 	i.midiByteHook = func(port int32, v int32) {
 		fn(int(port), byte(v))
 	}
+}
+
+func (i *Instance) AddToSearchPath(path string) {
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	core.AddToSearchPath(path + "\x00")
+}
+
+func (i *Instance) ClearSearchPath() {
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	core.ClearSearchPath()
+}
+
+// Bind subscribes to messages sent to the given symbol.
+// The call Bind("foo") adds an object to the patch that behaves much like [r foo],
+// with the output being passed on to the various message hooks of libpd.
+// The call to Bind() should take place after the call to Init().
+func (i *Instance) Bind(sym string) {
+	if !i.initDone {
+		return
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	pdBindMapMux.Lock()
+	if _, ok := pdBindMap[sym]; ok {
+		// bound already
+		log.Println("libpd: symbol", sym, "is already bound (global).")
+		pdBindMapMux.Unlock()
+		return
+	}
+	pdBindMap[sym] = core.Bind(sym + "\x00")
+	pdBindMapMux.Unlock()
+}
+
+// Unbind deletes the receiver objects created by Bind().
+func (i *Instance) Unbind(sym string) {
+	if !i.initDone {
+		return
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	pdBindMapMux.Lock()
+	ptr, ok := pdBindMap[sym]
+	if !ok {
+		pdBindMapMux.Unlock()
+		return
+	}
+	core.Unbind(ptr)
+	delete(pdBindMap, sym)
+	pdBindMapMux.Unlock()
 }

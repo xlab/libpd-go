@@ -10,48 +10,42 @@ import "C"
 import "unsafe"
 
 // Atom as declared in core/m_pd.h:183
-type Atom struct {
-	AType  AtomType
-	ref    *C.t_atom
-	allocs interface{}
-}
+type Atom C.t_atom
 
 func (a *Atom) IsFloat() bool {
-	return C.libpd_is_float(a.ref) > 0
+	return C.libpd_is_float((*C.t_atom)(a)) > 0
 }
 
 func (a *Atom) IsSymbol() bool {
-	return C.libpd_is_symbol(a.ref) > 0
+	return C.libpd_is_symbol((*C.t_atom)(a)) > 0
 }
 
 func (a *Atom) Float() float32 {
-	return float32(C.libpd_get_float(a.ref))
+	return float32(C.libpd_get_float((*C.t_atom)(a)))
 }
 
 func (a *Atom) Symbol() string {
-	cptr := C.libpd_get_symbol(a.ref)
+	cptr := C.libpd_get_symbol((*C.t_atom)(a))
 	return C.GoString(cptr)
 }
 
 func (a *Atom) Next() *Atom {
-	return &Atom{
-		ref: C.libpd_next_atom(a.ref),
-	}
+	atom := (*C.t_atom)(a)
+	nextAtom := C.libpd_next_atom(atom)
+	return (*Atom)(unsafe.Pointer(nextAtom))
 }
 
 func (a *Atom) SetFloat(v float32) {
-	C.libpd_set_float(a.ref, C.float(v))
+	C.libpd_set_float((*C.t_atom)(a), C.float(v))
 }
 
 func NewAtomRef(ref unsafe.Pointer) *Atom {
 	if ref == nil {
 		return nil
 	}
-	return &Atom{
-		ref: (*C.t_atom)(unsafe.Pointer(ref)),
-	}
+	return (*Atom)(ref)
 }
 
 func (x *Atom) PassRef() (*C.t_atom, *cgoAllocMap) {
-	return x.ref, nil
+	return (*C.t_atom)(unsafe.Pointer(x)), nil
 }
