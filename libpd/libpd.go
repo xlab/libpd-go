@@ -456,3 +456,120 @@ func (i *Instance) Unbind(sym string) {
 	delete(pdBindMap, sym)
 	pdBindMapMux.Unlock()
 }
+
+func (i *Instance) NoteOn(channel, pitch, velocity int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.NoteOn(int32(channel), int32(pitch), int32(velocity))
+	return ret == 0
+}
+
+func (i *Instance) ControlChange(channel, controller, value int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.ControlChange(int32(channel), int32(controller), int32(value))
+	return ret == 0
+}
+
+func (i *Instance) ProgramChange(channel, program int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.ProgramChange(int32(channel), int32(program))
+	return ret == 0
+}
+
+func (i *Instance) PitchBend(channel, value int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.Pitchbend(int32(channel), int32(value))
+	return ret == 0
+}
+
+func (i *Instance) Aftertouch(channel, value int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.Aftertouch(int32(channel), int32(value))
+	return ret == 0
+}
+
+func (i *Instance) PolyAftertouch(channel, pitch, value int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.PolyAftertouch(int32(channel), int32(pitch), int32(value))
+	return ret == 0
+}
+
+func (i *Instance) MIDIByte(port, value int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.MIDIByte(int32(port), int32(value))
+	return ret == 0
+}
+
+func (i *Instance) SysEx(port, value int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.SysEx(int32(port), int32(value))
+	return ret == 0
+}
+
+func (i *Instance) SysRealtime(port, value int) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.SysRealtime(int32(port), int32(value))
+	return ret == 0
+}
