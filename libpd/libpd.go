@@ -573,3 +573,42 @@ func (i *Instance) SysRealtime(port, value int) bool {
 	ret := core.SysRealtime(int32(port), int32(value))
 	return ret == 0
 }
+
+func (i *Instance) Bang(recv string) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.Bang(recv + "\x00")
+	return ret == 0
+}
+
+func (i *Instance) Float(recv string, f float32) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.Float(recv+"\x00", f)
+	return ret == 0
+}
+
+func (i *Instance) Symbol(recv, sym string) bool {
+	if !i.initDone {
+		return false
+	}
+	pdMux.Lock()
+	defer pdMux.Unlock()
+	err := switchInstance(i.handle)
+	orPanic(err)
+
+	ret := core.Symbol(recv+"\x00", sym+"\x00")
+	return ret == 0
+}
